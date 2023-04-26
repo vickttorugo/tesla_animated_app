@@ -6,6 +6,7 @@ import 'package:tesla_animated_app/home_controller.dart';
 import 'components/battery_status.dart';
 import 'components/door_lock.dart';
 import 'components/temp_btn.dart';
+import 'components/temp_details.dart';
 import 'components/tesla_bottom_navigationbar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   late AnimationController _tempAnimationController;
   late Animation<double> _animationCarShift;
+  late Animation<double> _animationTempShowInfo;
 
   void setupTempAnimation() {
     _tempAnimationController = AnimationController(
@@ -31,6 +33,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     _animationCarShift = CurvedAnimation(
         parent: _tempAnimationController, curve: Interval(0.2, 0.4));
+
+    _animationTempShowInfo = CurvedAnimation(
+        parent: _tempAnimationController, curve: Interval(0.45, 0.65));
   }
 
   void setupBatteryAnimation() {
@@ -193,7 +198,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                     // Temp
-                    TempDetails(controller: _controller),
+                    Positioned(
+                      height: constrains.maxHeight,
+                      width: constrains.maxWidth,
+                      top: 60 * (1 - _animationTempShowInfo.value),
+                      child: Opacity(
+                        opacity: _animationTempShowInfo.value,
+                        child: TempDetails(
+                          controller: _controller,
+                        ),
+                      ),
+                    ),
+                    // Positioned(
+                    //   right: 0,
+                    //   child: Image.asset(
+                    //     "assets/images/Cool_glow_2.png",
+                    //     width: 200,
+                    //   ),
+                    // ),
                   ],
                 );
               },
@@ -201,57 +223,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         );
       },
-    );
-  }
-}
-
-class TempDetails extends StatelessWidget {
-  const TempDetails({
-    super.key,
-    required HomeController controller,
-  }) : _controller = controller;
-
-  final HomeController _controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            TempBtn(
-              title: "Cool",
-              svgSrc: "assets/icons/coolShape.svg",
-              press: _controller.updateCoolSelectedTab,
-              isActive: _controller.isCoolSelected,
-            ),
-            const SizedBox(width: defaultPadding),
-            TempBtn(
-              title: "Heat",
-              svgSrc: "assets/icons/heatShape.svg",
-              activeColor: redColor,
-              press: _controller.updateCoolSelectedTab,
-              isActive: !_controller.isCoolSelected,
-            ),
-          ],
-        ),
-        IconButton(
-          padding: EdgeInsets.zero,
-          onPressed: () {},
-          icon: Icon(
-            Icons.arrow_drop_up,
-            size: 48,
-          ),
-        ),
-        Text("29" + "\u2103", style: TextStyle(fontSize: 86)),
-        IconButton(
-          padding: EdgeInsets.zero,
-          onPressed: () {},
-          icon: Icon(Icons.arrow_drop_down, size: 48),
-        ),
-        Text("CURRENT TEMPERATURE"),
-        const SizedBox(height: defaultPadding),
-      ],
     );
   }
 }
