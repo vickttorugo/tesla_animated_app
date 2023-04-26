@@ -5,6 +5,7 @@ import 'package:tesla_animated_app/home_controller.dart';
 
 import 'components/battery_status.dart';
 import 'components/door_lock.dart';
+import 'components/temp_btn.dart';
 import 'components/tesla_bottom_navigationbar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -14,13 +15,23 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final HomeController _controller = HomeController();
 
   late AnimationController _batteryAnimationController;
   late Animation<double> _animationBattery;
   late Animation<double> _animationBatteryStatus;
+
+  late AnimationController _tempAnimationController;
+  late Animation<double> _animationCarShift;
+
+  void setupTempAnimation() {
+    _tempAnimationController = AnimationController(
+        vsync: this, duration: Duration(milliseconds: 1500));
+
+    _animationCarShift = CurvedAnimation(
+        parent: _tempAnimationController, curve: Interval(0.2, 0.4));
+  }
 
   void setupBatteryAnimation() {
     _batteryAnimationController = AnimationController(
@@ -47,12 +58,14 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     setupBatteryAnimation();
+    setupTempAnimation();
     super.initState();
   }
 
   @override
   void dispose() {
     _batteryAnimationController.dispose();
+    _tempAnimationController.dispose();
     super.dispose();
   }
 
@@ -61,7 +74,8 @@ class _HomeScreenState extends State<HomeScreen>
     return AnimatedBuilder(
       // It rebuild the widget tree when any changes happend on our controller
       // This animation need listenable
-      animation: Listenable.merge([_controller, _batteryAnimationController]),
+      animation: Listenable.merge(
+          [_controller, _batteryAnimationController, _tempAnimationController]),
       builder: (context, _) {
         return Scaffold(
           bottomNavigationBar: TeslaBottomNavigationBar(
@@ -70,6 +84,10 @@ class _HomeScreenState extends State<HomeScreen>
                 _batteryAnimationController.forward();
               else if (_controller.selectedBottomTab == 1 && index != 1)
                 _batteryAnimationController.reverse(from: 0.7);
+              if (index == 2)
+                _tempAnimationController.forward();
+              else if (_controller.selectedBottomTab == 2 && index != 2)
+                _tempAnimationController.reverse(from: 0.4);
               _controller.onBottomNavigationTabChange(index);
             },
             selectedTab: _controller.selectedBottomTab,
@@ -80,15 +98,26 @@ class _HomeScreenState extends State<HomeScreen>
                 return Stack(
                   alignment: Alignment.center,
                   children: [
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: constrains.maxHeight * 0.1,
-                      ),
-                      child: SvgPicture.asset(
-                        "assets/icons/Car.svg",
-                        width: double.infinity,
+                    SizedBox(
+                      width: constrains.maxWidth,
+                      height: constrains.maxHeight,
+                    ),
+
+                    Positioned(
+                      left: constrains.maxWidth / 2 * _animationCarShift.value,
+                      height: constrains.maxHeight,
+                      width: constrains.maxWidth,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: constrains.maxHeight * 0.1,
+                        ),
+                        child: SvgPicture.asset(
+                          "assets/icons/Car.svg",
+                          width: double.infinity,
+                        ),
                       ),
                     ),
+
                     //Door Locks
                     AnimatedPositioned(
                       duration: defaultDuration,
@@ -162,7 +191,9 @@ class _HomeScreenState extends State<HomeScreen>
                         opacity: _animationBatteryStatus.value,
                         child: BatteryStatus(constrains: constrains),
                       ),
-                    )
+                    ),
+                    // Temp
+                    TempDetails(controller: _controller),
                   ],
                 );
               },
@@ -170,6 +201,57 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         );
       },
+    );
+  }
+}
+
+class TempDetails extends StatelessWidget {
+  const TempDetails({
+    super.key,
+    required HomeController controller,
+  }) : _controller = controller;
+
+  final HomeController _controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            TempBtn(
+              title: "Cool",
+              svgSrc: "assets/icons/coolShape.svg",
+              press: _controller.updateCoolSelectedTab,
+              isActive: _controller.isCoolSelected,
+            ),
+            const SizedBox(width: defaultPadding),
+            TempBtn(
+              title: "Heat",
+              svgSrc: "assets/icons/heatShape.svg",
+              activeColor: redColor,
+              press: _controller.updateCoolSelectedTab,
+              isActive: !_controller.isCoolSelected,
+            ),
+          ],
+        ),
+        IconButton(
+          padding: EdgeInsets.zero,
+          onPressed: () {},
+          icon: Icon(
+            Icons.arrow_drop_up,
+            size: 48,
+          ),
+        ),
+        Text("29" + "\u2103", style: TextStyle(fontSize: 86)),
+        IconButton(
+          padding: EdgeInsets.zero,
+          onPressed: () {},
+          icon: Icon(Icons.arrow_drop_down, size: 48),
+        ),
+        Text("CURRENT TEMPERATURE"),
+        const SizedBox(height: defaultPadding),
+      ],
     );
   }
 }
